@@ -5,13 +5,13 @@ const { accept } = require("../");
 
 function modifyAstForAssertions(astNode) {
   // Avoid comparing cyclic structures
-  accept(astNode, parentRemoverVisitor);
+  accept(parentRemoverVisitor, astNode);
   // Reduce verbosity of assertions
-  accept(astNode, positionReducerVisitor);
+  accept(positionReducerVisitor, astNode);
 }
 
 function removeParentProps(astNode) {
-  accept(astNode, parentRemoverVisitor);
+  accept(parentRemoverVisitor, astNode);
 }
 
 /**
@@ -72,7 +72,7 @@ function reducePositionInfo(pos) {
 }
 
 function assertParentPropsAreValid(astNode) {
-  accept(astNode, parentPropsValidatorVisitor);
+  accept(parentPropsValidatorVisitor, astNode);
 }
 
 /**

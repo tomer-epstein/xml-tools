@@ -12,9 +12,11 @@
   "typings": "./api.d.ts",
   "dependencies": {
     "@xml-tools/parser": "^0.4.0",
-    "lodash": "4.17.15"
+    "lodash": "4.17.15",
+    "ramda": "^0.26.1"
   },
   "devDependencies": {
+    "@types/ramda": "^0.26.33",
     "klaw-sync": "6.0.0"
   },
   "scripts": {

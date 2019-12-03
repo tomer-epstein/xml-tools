@@ -8,8 +8,11 @@ const {
   isEmpty,
   isArray
 } = require("lodash");
+const { forEach, reduce, map, pick, sortBy, lensProp, set } = require("ramda");
 
 const { getAstChildrenReflective } = require("./utils");
+
+const parentLens = lensProp("parent");
 
 /**
  * @param {DocumentCstNode} docCst
@@ -74,7 +77,7 @@ class CstToAstVisitor extends BaseXmlCstVisitor {
     };
 
     if (ctx.attribute !== undefined) {
-      astNode.attributes = map(ctx.attribute, this.visit.bind(this));
+      astNode.attributes = map(this.visit.bind(this), ctx.attribute);
     }
 
     setChildrenParent(astNode);
@@ -93,11 +96,11 @@ class CstToAstVisitor extends BaseXmlCstVisitor {
     let textContents = [];
 
     if (ctx.element !== undefined) {
-      elements = map(ctx.element, this.visit.bind(this));
+      elements = map(this.visit.bind(this), ctx.element);
     }
 
     if (ctx.chardata !== undefined) {
-      textContents = map(ctx.chardata, this.visit.bind(this));
+      textContents = map(this.visit.bind(this), ctx.chardata);
     }
 
     return { elements, textContents };
@@ -120,7 +123,7 @@ class CstToAstVisitor extends BaseXmlCstVisitor {
     };
 
     if (ctx.attribute !== undefined) {
-      astNode.attributes = map(ctx.attribute, this.visit.bind(this));
+      astNode.attributes = map(this.visit.bind(this), ctx.attribute);
     }
 
     if (ctx.content !== undefined) {
@@ -225,8 +228,8 @@ class CstToAstVisitor extends BaseXmlCstVisitor {
     if (ctx.TEXT !== undefined) {
       allTokens = allTokens.concat(ctx.TEXT);
     }
-    const sortedTokens = sortBy(allTokens, ["startOffset"]);
-    const fullText = map(sortedTokens, "image").join("");
+    const sortedTokens = sortBy(["startOffset"], allTokens);
+    const fullText = map(pick("image"), sortedTokens).join("");
     astNode.text = fullText;
 
     return astNode;
@@ -246,7 +249,7 @@ const AstBuilder = new CstToAstVisitor();
 
 function setChildrenParent(astParent) {
   const astChildren = getAstChildrenReflective(astParent);
-  forEach(astChildren, child => (child.parent = astParent));
+  forEach(set(parentLens, astParent), astChildren);
 }
 
 /**
@@ -255,7 +258,6 @@ function setChildrenParent(astParent) {
  */
 function updateNamespaces(element, prevNamespaces = []) {
   const currElemNamespaces = reduce(
-    element.attributes,
     (result, attrib) => {
       /* istanbul ignore else - Defensive Coding, not actually possible branch */
       if (attrib.key !== invalidSyntax) {
@@ -272,13 +274,15 @@ function updateNamespaces(element, prevNamespaces = []) {
 
       return result;
     },
-    []
+    [],
+    element.attributes
   );
 
   element.namespaces = currElemNamespaces.concat(prevNamespaces);
 
-  forEach(element.subElements, subElem =>
-    updateNamespaces(subElem, element.namespaces)
+  forEach(
+    subElem => updateNamespaces(subElem, element.namespaces),
+    element.subElements
   );
 }
 
@@ -286,17 +290,15 @@ function updateNamespaces(element, prevNamespaces = []) {
  *
  * @param {chevrotain.IToken} token
  */
-function toXMLToken(token) {
-  return pick(token, [
-    "image",
-    "startOffset",
-    "endOffset",
-    "startLine",
-    "endLine",
-    "startColumn",
-    "endColumn"
-  ]);
-}
+const toXMLToken = pick([
+  "image",
+  "startOffset",
+  "endOffset",
+  "startLine",
+  "endLine",
+  "startColumn",
+  "endColumn"
+]);
 
 function endOfXMLToken(token) {
   return pick(token, ["endOffset", "endLine", "endColumn"]);

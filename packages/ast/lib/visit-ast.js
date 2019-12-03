@@ -1,13 +1,14 @@
-const { forEach, isFunction } = require("lodash");
+const { isFunction } = require("lodash");
+const { forEach, curry } = require("ramda");
 const { getAstChildrenReflective } = require("./utils");
 
 /**
- * @param {XMLAstNode} node
  * @param {XMLAstVisitor} visitor
+ * @param {XMLAstNode} node
  *
  * @returns {void}
  */
-function accept(node, visitor) {
+const accept = curry((visitor, node) => {
   switch (node.type) {
     case "XMLDocument": {
       if (isFunction(visitor.visitXMLDocument)) {
@@ -45,10 +46,8 @@ function accept(node, visitor) {
   }
 
   const astChildren = getAstChildrenReflective(node);
-  forEach(astChildren, childNode => {
-    accept(childNode, visitor);
-  });
-}
+  forEach(accept(visitor), astChildren);
+});
 
 module.exports = {
   accept: accept

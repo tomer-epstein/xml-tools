@@ -1,25 +1,54 @@
-const { values, reduce, has, isArray } = require("lodash");
+const {
+  reduce,
+  has,
+  pipe,
+  toPairs,
+  filter,
+  concat,
+  append,
+  cond,
+  is,
+  and,
+  T,
+  isEmpty,
+  always,
+  curry,
+  apply,
+  flip,
+  identity,
+  flatten,
+  not,
+  map,
+  equals,
+  defaultTo,
+  converge,
+  takeLast
+} = require("ramda");
 
-function getAstChildrenReflective(astParent) {
-  const astChildren = reduce(
-    astParent,
-    (result, prop, name) => {
-      if (name === "parent") {
-        // parent property is never a child...
-      } else if (has(prop, "type")) {
-        result.push(prop);
-      } else if (isArray(prop) && prop.length > 0 && has(prop[0], "type")) {
-        result = result.concat(prop);
-      }
+const hasType = has("type");
+const isArray = value => Array.isArray(value);
+const wrapInArray = obj => [obj];
+const notEmpty = pipe(isEmpty, not);
+const isArrayWithValues = converge(and, [isArray, notEmpty]);
 
-      return result;
-    },
-    []
-  );
-
-  return astChildren;
-}
+const getAstChildrenReflective = pipe(
+  defaultTo({}),
+  toPairs,
+  map(
+    cond([
+      [apply(equals("parent")), always([])],
+      [(_, value) => value && hasType(value), (_, value) => wrapInArray(value)],
+      [
+        pipe(takeLast(1), apply(isArrayWithValues)),
+        pipe(takeLast(1), identity)
+      ],
+      [T, always([])]
+    ])
+  ),
+  flatten
+);
 
 module.exports = {
+  hasType: hasType,
   getAstChildrenReflective: getAstChildrenReflective
 };
